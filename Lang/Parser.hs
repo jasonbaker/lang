@@ -1,5 +1,7 @@
 module Lang.Parser where
 
+import Control.Monad
+
 import Lang.Types
 
 import Text.ParserCombinators.Parsec
@@ -36,6 +38,9 @@ semi      = P.semi lexer
 identifier= P.identifier lexer
 reserved  = P.reserved lexer
 reservedOp= P.reservedOp lexer
+float = P.float lexer
+int = P.integer lexer
+stringLiteral = P.stringLiteral lexer
 
 funcall :: Parser LangExpr
 funcall = do{ symbol "["
@@ -51,12 +56,23 @@ variable = do{ i <- identifier
              }
            <?> "variable"
 
+intExpr :: Parser LangExpr
+intExpr = do{ i <- int; return $ IntExpr i}
+
+stringExpr :: Parser LangExpr
+stringExpr = do{ s <- stringLiteral; return $ StrExpr s}
+
+floatExpr :: Parser LangExpr
+floatExpr = do{f <- float; return $ FloatExpr f}
+
 expr :: Parser LangExpr
 expr = (parens expr)
+       <|> try floatExpr
+       <|> intExpr
+       <|> stringExpr
        <|> variable
        <|> funcall
        <?> "expression"
-
 compoundExpr :: Parser LangExpr
 compoundExpr = do { e <- sepBy1 expr (symbol ";")
                    ; return $ CompoundExpr e
